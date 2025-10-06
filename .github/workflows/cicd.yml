@@ -1,4 +1,4 @@
-name: CI - Build and Push Docker Image to ECR
+name: CI - Build and Push Docker Image to Public ECR
 
 on:
   push:
@@ -16,15 +16,15 @@ jobs:
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set default.region ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
+      - name: Login to Amazon Public ECR
         run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 789121567415.dkr.ecr.us-east-1.amazonaws.com
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/w7a0s7x9
 
-      - name: Build and push Docker image to ECR
+      - name: Build and push Docker image to Public ECR
         run: |
           docker build -t medplus:${{ github.run_number }} .
-          docker tag medplus:${{ github.run_number }} 789121567415.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}
-          docker push 789121567415.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}
+          docker tag medplus:${{ github.run_number }} public.ecr.aws/w7a0s7x9/medplus:${{ github.run_number }}
+          docker push public.ecr.aws/w7a0s7x9/medplus:${{ github.run_number }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -36,9 +36,9 @@ jobs:
           chmod 600 key2.pem
           cat key2.pem
 
-          # Pull latest Docker image from ECR
+          # Pull latest Docker image from Public ECR
           ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
-          "docker pull 789121567415.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}"
+          "docker pull public.ecr.aws/w7a0s7x9/medplus:${{ github.run_number }}"
 
           # Stop and remove old container (optional)
           ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
@@ -46,28 +46,21 @@ jobs:
 
           # Run new container
           ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
-          "docker run -d --name medplus -p 80:80 789121567415.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}"
+          "docker run -d --name medplus -p 80:80 public.ecr.aws/w7a0s7x9/medplus:${{ github.run_number }}"
 
       - name: Notify Slack of successful deployment
         if: success()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\" Deployment successful for *Medplus* (Run #${{ github.run_number }})! 🚀\"}" \
+          --data "{\"text\":\"Deployment successful for *Medplus* (Run #${{ github.run_number }})! 🚀\"}" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Notify Slack if deployment fails
         if: failure()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\" Deployment failed for *Medplus* (Run #${{ github.run_number }})! Please check logs.\"}" \
+          --data "{\"text\":\"Deployment failed for *Medplus* (Run #${{ github.run_number }})! Please check logs.\"}" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
-
-
-
-
-
-
-
 
 
 
