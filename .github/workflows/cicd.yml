@@ -18,13 +18,13 @@ jobs:
 
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 696035274327.dkr.ecr.us-east-1.amazonaws.com
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 789121567415.dkr.ecr.us-east-1.amazonaws.com
 
       - name: Build and push Docker image to ECR
         run: |
           docker build -t medplus:${{ github.run_number }} .
-          docker tag medplus:${{ github.run_number }} 696035274327.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}
-          docker push 696035274327.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}
+          docker tag medplus:${{ github.run_number }} 789121567415.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}
+          docker push 789121567415.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
 
           # Pull latest Docker image from ECR
           ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
-          "docker pull 696035274327.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}"
+          "docker pull 789121567415.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}"
 
           # Stop and remove old container (optional)
           ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
@@ -46,7 +46,7 @@ jobs:
 
           # Run new container
           ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
-          "docker run -d --name medplus -p 80:80 696035274327.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}"
+          "docker run -d --name medplus -p 80:80 789121567415.dkr.ecr.us-east-1.amazonaws.com/medplus:${{ github.run_number }}"
 
       - name: Notify Slack of successful deployment
         if: success()
