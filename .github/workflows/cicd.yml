@@ -36,15 +36,16 @@ jobs:
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/medplux:${{ github.run_number }}
 
       - name: Update deployment.yaml with new image tag
-        run: |
-          sed -i "s+789121567415.dkr.ecr.us-east-1.amazonaws.com/medplux:.*+789121567415.dkr.ecr.us-east-1.amazonaws.com/medplux:${{ github.run_number }}+g" deployment.yaml
-          cat deployment.yaml
-
-      - name: Commit and push updated deployment.yaml
         env:
           GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
           GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
         run: |
+          git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/inijoy/kubernetes-manifest.git
+          cd kubernetes-manifest/mediplus-yaml
+
+          sed -i "s+789121567415.dkr.ecr.us-east-1.amazonaws.com/medplux:.*+789121567415.dkr.ecr.us-east-1.amazonaws.com/medplux:${{ github.run_number }}+g" deployment.yaml
+          cat deployment.yaml
+
           git config user.email "inijoy1@gmail.com"
           git config user.name "${GIT_USERNAME}"
           git add .
@@ -64,6 +65,7 @@ jobs:
           curl -X POST -H 'Content-type: application/json' \
           --data "{\"text\":\"❌ Deployment failed for *Medplus* (Run #${{ github.run_number }})! Please check logs.\"}" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
+
 
 
 
