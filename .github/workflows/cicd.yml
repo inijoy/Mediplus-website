@@ -35,54 +35,35 @@ jobs:
         run: |
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/medplux:${{ github.run_number }}
 
+      - name: Update deployment.yaml with new image tag
+        run: |
+          sed -i "s+789121567415.dkr.ecr.us-east-1.amazonaws.com/medplux:.*+789121567415.dkr.ecr.us-east-1.amazonaws.com/medplux:${{ github.run_number }}+g" deployment.yaml
+          cat deployment.yaml
 
-  # deploy:
-#   runs-on: ubuntu-latest
-#   needs: build-push
-#   steps: 
-#     - name: Check my SSH key
-#       run: |
-#         echo "${{ secrets.SSH_KEY }}" > key2.pem
-#         chmod 600 key2.pem
-#         cat key2.pem
+      - name: Commit and push updated deployment.yaml
+        env:
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+          GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
+        run: |
+          git config user.email "inijoy1@gmail.com"
+          git config user.name "${GIT_USERNAME}"
+          git add .
+          git commit -m "Updated deployment.yaml with new image tag"
+          git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/inijoy/kubernetes-manifest.git HEAD:main
 
-#         # Pull latest Docker image from Public ECR
-#         ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
-#         "docker pull public.ecr.aws/w7a0s7x9/medplus:${{ github.run_number }}"
+      - name: Notify Slack of successful deployment
+        if: success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{\"text\":\"✅ Deployment successful for *Medplus* (Run #${{ github.run_number }})! 🚀\"}" \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
 
-#         # Stop and remove old container (optional)
-#         ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
-#         "docker rm -f medplus || true"
-
-#         # Run new container
-#         ssh -o StrictHostKeyChecking=no -i key2.pem ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} \
-#         "docker run -d --name medplus -p 80:80 public.ecr.aws/w7a0s7x9/medplus:${{ github.run_number }}"
-
-#     - name: Notify Slack of successful deployment
-#       if: success()
-#       run: |
-#         curl -X POST -H 'Content-type: application/json' \
-#         --data "{\"text\":\"Deployment successful for *Medplus* (Run #${{ github.run_number }})! 🚀\"}" \
-#         ${{ secrets.SLACK_WEBHOOK_URL }}
-
-#     - name: Notify Slack if deployment fails
-#       if: failure()
-#       run: |
-#         curl -X POST -H 'Content-type: application/json' \
-#         --data "{\"text\":\"Deployment failed for *Medplus* (Run #${{ github.run_number }})! Please check logs.\"}" \
-#         ${{ secrets.SLACK_WEBHOOK_URL }}
-
-
-
-
-
-
-
-
-
-
-
-
+      - name: Notify Slack if deployment fails
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{\"text\":\"❌ Deployment failed for *Medplus* (Run #${{ github.run_number }})! Please check logs.\"}" \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
 
 
 
